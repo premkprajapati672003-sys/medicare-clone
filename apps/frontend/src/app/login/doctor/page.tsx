@@ -18,7 +18,7 @@ export default function DoctorLogin() {
     const res = await fetch('http://127.0.0.1:3002/api/auth/login', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ email })
+      body: JSON.stringify({ email, password })
     });
 
     if (res.ok) {
@@ -30,7 +30,8 @@ export default function DoctorLogin() {
       localStorage.setItem('hotdoc_user', JSON.stringify(user));
       router.push('/doctor');
     } else {
-      setError('Account not found. Please contact hospital administration.');
+      const data = await res.json().catch(() => ({}));
+      setError(data.error || 'Account not found. Please contact hospital administration.');
     }
   };
 

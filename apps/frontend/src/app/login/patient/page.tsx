@@ -18,7 +18,7 @@ export default function PatientLogin() {
     const res = await fetch('http://127.0.0.1:3002/api/auth/login', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ email })
+      body: JSON.stringify({ email, password })
     });
 
     if (res.ok) {
@@ -30,7 +30,8 @@ export default function PatientLogin() {
       localStorage.setItem('hotdoc_user', JSON.stringify(user));
       router.push('/patient');
     } else {
-      setError('Patient record not found. Please register at the hospital desk.');
+      const data = await res.json().catch(() => ({}));
+      setError(data.error || 'Patient record not found. Please register at the hospital desk.');
     }
   };
 

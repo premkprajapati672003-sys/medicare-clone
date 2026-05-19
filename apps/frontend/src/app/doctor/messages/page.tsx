@@ -12,7 +12,7 @@ export default function DoctorMessages() {
   const [newMessage, setNewMessage] = useState('');
   const [pendingAttachments, setPendingAttachments] = useState<any[]>([]);
   const [allPatients, setAllPatients] = useState<any[]>([]);
-  const [activeTab, setActiveTab] = useState<'Private Chat' | 'All Contacts' | 'AI Assistant'>('Private Chat');
+  const [activeTab, setActiveTab] = useState<'Private Chat' | 'All Contacts'>('Private Chat');
   const [aiMessages, setAiMessages] = useState<any[]>([
     { id: '1', senderId: 'AI_ASSISTANT', content: 'Hello Doctor! I am your Gemini Clinical AI. How can I assist you with your patients today?', createdAt: new Date() }
   ]);
@@ -202,30 +202,21 @@ export default function DoctorMessages() {
           </div>
 
           {/* Tabs */}
-          <div className="flex items-center justify-between px-6 pb-4 text-xs font-semibold border-b border-slate-100 border-dashed">
+          <div className="flex items-center justify-around px-6 pb-4 text-xs font-semibold border-b border-slate-100 border-dashed">
             <button 
               onClick={() => setActiveTab('Private Chat')}
-              className={activeTab === 'Private Chat' ? "text-[#348e7b]" : "text-slate-400 hover:text-slate-600"}
+              className={activeTab === 'Private Chat' ? "text-[#348e7b] border-b-2 border-[#348e7b] pb-1" : "text-slate-400 hover:text-slate-600 pb-1"}
             >
               Private Chat
             </button>
             <button 
               onClick={() => setActiveTab('All Contacts')}
-              className={activeTab === 'All Contacts' ? "text-[#348e7b]" : "text-slate-400 hover:text-slate-600 flex items-center gap-1"}
+              className={activeTab === 'All Contacts' ? "text-[#348e7b] border-b-2 border-[#348e7b] pb-1" : "text-slate-400 hover:text-slate-600 flex items-center gap-1 pb-1"}
             >
               All Contacts
               {newContacts.length > 0 && (
                 <span className="bg-[#348e7b] text-white text-[9px] w-4 h-4 rounded-full flex items-center justify-center ml-1">{allPatients.length}</span>
               )}
-            </button>
-            <button 
-              onClick={() => {
-                setActiveTab('AI Assistant');
-                setActivePartner({ partnerId: 'AI_ASSISTANT', partnerName: 'Gemini Clinical AI', partnerRole: 'AI ASSISTANT' });
-              }}
-              className={activeTab === 'AI Assistant' ? "text-purple-600 flex items-center gap-1" : "text-slate-400 hover:text-purple-600 flex items-center gap-1"}
-            >
-              ✨ Gemini AI
             </button>
           </div>
 

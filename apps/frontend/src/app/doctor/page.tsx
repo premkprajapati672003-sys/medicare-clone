@@ -89,7 +89,7 @@ export default function DoctorDashboard() {
         <div onClick={() => setActivePopup('ALL')} className="card shadow-sm border border-slate-200 rounded-xl p-5 flex flex-col justify-between hover:border-[#312e81] hover:shadow-md transition-all cursor-pointer bg-white" style={{ minHeight: '140px' }}>
           <div className="flex items-center gap-3 mb-2">
             <div className="w-10 h-10 rounded-full bg-rose-50 flex items-center justify-center text-rose-500">
-              <svg width="20" height="20" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2m-3 7h3m-3 4h3m-6-4h.01M9 16h.01"></path></svg>
+              <svg width="20" height="20" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2"></path></svg>
             </div>
             <div>
               <div className="font-semibold text-sm text-slate-800">All Appointments</div>

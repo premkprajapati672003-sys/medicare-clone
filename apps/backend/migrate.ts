@@ -1,6 +1,9 @@
 import { Database } from "bun:sqlite";
+import { join } from "path";
 
-const db = new Database("hotdoc.db");
+const dbPath = join(import.meta.dir, "hotdoc.db");
+const db = new Database(dbPath);
+
 
 db.run(`
   CREATE TABLE IF NOT EXISTS documents (

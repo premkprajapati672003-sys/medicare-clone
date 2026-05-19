@@ -24,6 +24,7 @@ async function seed() {
     name: 'Dr. Meredith Grey',
     email: 'grey@hotdoc.com',
     role: 'DOCTOR',
+    password: 'password123',
     phone: '555-0101'
   }).returning();
 
@@ -31,6 +32,7 @@ async function seed() {
     name: 'Dr. Derek Shepherd',
     email: 'shepherd@hotdoc.com',
     role: 'DOCTOR',
+    password: 'password123',
     phone: '555-0102'
   }).returning();
 
@@ -53,6 +55,7 @@ async function seed() {
       name: p.name,
       email: p.email,
       role: 'PATIENT',
+      password: 'password123',
       phone: '555-0200',
       age: p.age,
       gender: p.gender,

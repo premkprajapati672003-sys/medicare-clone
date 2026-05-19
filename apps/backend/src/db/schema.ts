@@ -6,6 +6,7 @@ export const users = sqliteTable('users', {
   role: text('role').notNull(), // 'DOCTOR' or 'PATIENT'
   name: text('name').notNull(),
   email: text('email').notNull().unique(),
+  password: text('password'), // Plain text password
   phone: text('phone'),
   age: integer('age'),
   gender: text('gender'),

@@ -2,8 +2,10 @@ import { Database } from "bun:sqlite";
 import { readFileSync, readdirSync } from "fs";
 import { join } from "path";
 
-const db = new Database("hotdoc.db", { create: true });
-const drizzleDir = "./drizzle";
+const dbPath = join(import.meta.dir, "hotdoc.db");
+const db = new Database(dbPath, { create: true });
+const drizzleDir = join(import.meta.dir, "drizzle");
+
 const files = readdirSync(drizzleDir).filter(f => f.endsWith('.sql'));
 
 if (files.length === 0) {

@@ -1,3 +1,23 @@
+import dotenv from 'dotenv';
+import { join } from 'path';
+
+// Load environment variables from the correct directory relative to index.ts
+dotenv.config({ path: join(import.meta.dir, '../.env') });
+
+import { Database } from 'bun:sqlite';
+const rawDb = new Database(join(import.meta.dir, '../hotdoc.db'));
+try {
+  rawDb.run("ALTER TABLE users ADD COLUMN password TEXT;");
+  console.log("Column 'password' patched in SQLite users table successfully!");
+  rawDb.run("UPDATE users SET password = 'password123' WHERE password IS NULL;");
+  console.log("Default passwords ('password123') synchronized in SQLite!");
+} catch (e: any) {
+  try {
+    rawDb.run("UPDATE users SET password = 'password123' WHERE password IS NULL;");
+  } catch(err) {}
+}
+rawDb.close();
+
 import { Elysia } from 'elysia';
 import { cors } from '@elysiajs/cors';
 import { db } from './db';
@@ -6,6 +26,7 @@ import { eq, and, gte, or } from 'drizzle-orm';
 import { OAuth2Client } from 'google-auth-library';
 
 const googleClient = new OAuth2Client(process.env.GOOGLE_CLIENT_ID);
+
 
 const app = new Elysia()
   .use(cors())
@@ -37,7 +58,7 @@ const app = new Elysia()
   
   // 3. Book an appointment
   .post('/api/appointments', async ({ body }) => {
-    const { patientId, doctorId, startTime, endTime, appointmentType } = body as any;
+    const { patientId, doctorId, startTime, endTime, appointmentType, status } = body as any;
     
     const newAppointment = await db.insert(appointments).values({
       patientId,
@@ -45,32 +66,42 @@ const app = new Elysia()
       startTime: new Date(startTime),
       endTime: new Date(endTime),
       appointmentType,
-      status: 'SCHEDULED'
+      status: status || 'SCHEDULED'
     }).returning();
     
     await db.insert(communications).values({
       patientId,
       type: 'SMS',
-      message: `Booking Confirmed: Your appointment has been scheduled for ${new Date(startTime).toLocaleString()}.`
+      message: status === 'WAITING'
+        ? `Added to Waitlist: You have joined the waiting queue for ${new Date(startTime).toLocaleString()}.`
+        : `Booking Confirmed: Your appointment has been scheduled for ${new Date(startTime).toLocaleString()}.`
     });
     
     return newAppointment[0];
   })
   
-  // 4. Mock Login
+  // 4. Login
   .post('/api/auth/login', async ({ body }) => {
-    const { email } = body as any;
+    const { email, password } = body as any;
     const user = await db.query.users.findFirst({
       where: eq(users.email, email)
     });
     
-    if (!user) return new Response(JSON.stringify({ error: 'User not found' }), { status: 404 });
+    if (!user) {
+      return new Response(JSON.stringify({ error: 'User not found' }), { status: 404 });
+    }
+
+    // Strict password match check
+    if (user.password && user.password !== password) {
+      return new Response(JSON.stringify({ error: 'Invalid password' }), { status: 401 });
+    }
+    
     return user;
   })
   
   // 5. Register (For the Professor to add themselves)
   .post('/api/auth/register', async ({ body }) => {
-    const { email, name, role } = body as any;
+    const { email, name, role, password } = body as any;
     
     const existing = await db.query.users.findFirst({
       where: eq(users.email, email)
@@ -82,6 +113,7 @@ const app = new Elysia()
       email,
       name,
       role, // 'DOCTOR' or 'PATIENT'
+      password: password || 'password123',
       phone: ''
     }).returning();
     
@@ -188,6 +220,24 @@ const app = new Elysia()
     return newPrescription[0];
   })
 
+  // Update prescription
+  .put('/api/prescriptions/:id', async ({ params: { id }, body }) => {
+    const { medicationName, dosage, repeatsAllowed } = body as any;
+    const updated = await db.update(prescriptions).set({
+      medicationName,
+      dosage,
+      repeatsAllowed: parseInt(repeatsAllowed) || 0
+    }).where(eq(prescriptions.id, id)).returning();
+    return updated[0];
+  })
+
+  // Delete prescription
+  .delete('/api/prescriptions/:id', async ({ params: { id } }) => {
+    const deleted = await db.delete(prescriptions).where(eq(prescriptions.id, id)).returning();
+    return { success: true, deleted: deleted[0] };
+  })
+
+
   // Get patient history
   .get('/api/patients/:id/history', async ({ params: { id } }) => {
     const records = await db.query.medicalRecords.findMany({
@@ -196,7 +246,22 @@ const app = new Elysia()
     const scripts = await db.query.prescriptions.findMany({
       where: eq(prescriptions.patientId, id)
     });
-    return { records, prescriptions: scripts };
+    const appts = await db.query.appointments.findMany({
+      where: eq(appointments.patientId, id)
+    });
+    const labs = await db.query.labOrders.findMany({
+      where: eq(labOrders.patientId, id)
+    });
+    const invs = await db.query.invoices.findMany({
+      where: eq(invoices.patientId, id)
+    });
+    return { 
+      records, 
+      prescriptions: scripts, 
+      appointments: appts, 
+      labOrders: labs, 
+      invoices: invs 
+    };
   })
   
   // Get patient invoices
@@ -251,13 +316,13 @@ const app = new Elysia()
 
   // Create a new appointment
   .post('/api/appointments', async ({ body }) => {
-    const { patientId, doctorId, startTime, endTime, appointmentType } = body as any;
+    const { patientId, doctorId, startTime, endTime, appointmentType, status } = body as any;
     const newApt = await db.insert(appointments).values({
       patientId,
       doctorId,
       startTime: new Date(startTime),
       endTime: new Date(endTime),
-      status: 'SCHEDULED',
+      status: status || 'SCHEDULED',
       appointmentType: appointmentType || 'IN_PERSON'
     }).returning();
     return newApt[0];
@@ -331,6 +396,56 @@ const app = new Elysia()
       .returning();
     return updated[0];
   })
+
+  // Create invoice manually
+  .post('/api/invoices', async ({ body }) => {
+    const { patientId, amount, status, appointmentId, paymentMethod } = body as any;
+    const newInvoice = await db.insert(invoices).values({
+      appointmentId: appointmentId || crypto.randomUUID(),
+      patientId,
+      amount: parseFloat(amount) || 0,
+      status: status || 'UNPAID',
+      paymentMethod: paymentMethod || null
+    }).returning();
+    
+    return newInvoice[0];
+  })
+
+  // Edit invoice manually
+  .put('/api/invoices/:id', async ({ params: { id }, body }) => {
+    const { amount, status, paymentMethod } = body as any;
+    const updated = await db.update(invoices)
+      .set({
+        amount: amount !== undefined ? parseFloat(amount) : undefined,
+        status: status || undefined,
+        paymentMethod: paymentMethod || null
+      })
+      .where(eq(invoices.id, id))
+      .returning();
+    return updated[0];
+  })
+
+  // Delete invoice
+  .delete('/api/invoices/:id', async ({ params: { id } }) => {
+    const deleted = await db.delete(invoices)
+      .where(eq(invoices.id, id))
+      .returning();
+    return deleted[0];
+  })
+
+  // Create communication log manually
+  .post('/api/communications', async ({ body }) => {
+    const { patientId, type, message } = body as any;
+    const comm = await db.insert(communications).values({
+      patientId,
+      type: type || 'EMAIL',
+      message
+    }).returning();
+    return comm[0];
+  })
+
+
+
 
   // Messaging routes
   .get('/api/users/:id/conversations', async ({ params: { id } }) => {
